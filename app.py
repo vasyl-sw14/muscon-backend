@@ -2,6 +2,10 @@ from flask import Flask, g, jsonify, request
 import sqlite3
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
+from flask_sqlalchemy import SQLAlchemy
+from flask_bcrypt import Bcrypt
+from models import User, Session
+from flask_httpauth import HTTPBasicAuth
 
 app = Flask(__name__)
 app.config["DEBUG"] = True
@@ -10,7 +14,10 @@ DATABASE = "./test.db"
 
 sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id="7ed78a10ad33404c952dec000863ec9e",
                                                            client_secret="df0f57a438454795a9b1da87825000de"))
-
+db = SQLAlchemy(app)
+bcrypt = Bcrypt(app)
+auth = HTTPBasicAuth()
+session = Session()
 
 def get_db():
     db = getattr(g, '_database', None)
@@ -23,6 +30,44 @@ def get_db():
 def home():
     return "MusCon Backend"
 
+@app.route('/signup', methods=['POST'])
+def create_user():
+    data = request.get_json()
+    new_user = User(
+        username = data['username'], 
+        email = data['email'], 
+        password = bcrypt.generate_password_hash(data['password']).decode('utf-8'),
+        city = data['city'],
+        photo = data['photo']
+    )
+    
+    if not session.query(User).filter(User.username == data['username']).one_or_none() is None:
+        return 'This username already exists', '400'
+
+    if not session.query(User).filter(User.email == data['email']).one_or_none() is None:
+        return 'This email is taken', '400'
+
+    session.add(new_user)
+    session.commit()
+
+    return jsonify ({'message': 'successful operation'})
+
+@app.route('/login', methods=['POST'])
+@auth.verify_password
+def login():
+    data = request.get_json()
+    user = User(
+        username = data['username'], 
+        password = bcrypt.generate_password_hash(data['password']).decode('utf-8'),
+    )
+    user = session.query(User).filter(User.username == data['username']).one_or_none()
+    if user is None:
+        return 'User with such username was not found'
+
+    if not bcrypt.check_password_hash(user.password, data['password']):
+        return 'Wrong password'
+
+    return jsonify ({'message': 'successful operation'})
 
 @app.route('/genres', methods=['GET'])
 def get_genres():
