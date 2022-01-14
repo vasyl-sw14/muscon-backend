@@ -28,13 +28,19 @@ PRIMARY KEY (artist_id, genre_id)
 CREATE TABLE IF NOT EXISTS wall(
 id INT AUTO_INCREMENT PRIMARY KEY,
 user_id INT NOT NULL,
+username VARCHAR(45) NOT NULL,
+photo BLOB NULL,
 genre_id INT NOT NULL,
 datetime DATETIME NOT NULL,
 text TEXT NOT NULL,
-photo BLOB NULL,
+photo_wall longblob NULL,
 FOREIGN KEY (user_id) REFERENCES user (id) ON DELETE RESTRICT ON UPDATE CASCADE,
 FOREIGN KEY (genre_id) REFERENCES genre (id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
+
+INSERT INTO wall (username, photo)
+SELECT username, photo
+FROM user;
 
 CREATE TABLE IF NOT EXISTS user_genre(
 user_id INT NOT NULL,
