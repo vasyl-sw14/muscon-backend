@@ -7,7 +7,8 @@ from sqlalchemy import (
     String,
     BLOB,
     ForeignKey,
-    DateTime
+    DateTime,
+    Enum
 )
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy import create_engine
@@ -18,7 +19,7 @@ datetime.utcnow()
 
 BaseModel = declarative_base()
 metadata = BaseModel.metadata
-mysql_engine = create_engine("mysql+pymysql://root:Bonia9977@localhost/muscon", encoding="utf-8", echo=True,
+mysql_engine = create_engine("mysql+pymysql://root:1234432aat@localhost/muscon", encoding="utf-8", echo=True,
                              future=True)
 Session = sessionmaker(bind=mysql_engine)
 session = Session()
@@ -33,14 +34,18 @@ class User(BaseModel):
     city = Column(String(40), nullable=False)
     photo = Column(BLOB, nullable=True)
 
+class Friends(BaseModel):
+    __tablename__ = "friends"
+
+    user_id_1 = Column(Integer, ForeignKey('user.id'), nullable=False, primary_key=True)
+    user_id_2 = Column(Integer, ForeignKey('user.id'), nullable=False, primary_key=True)
+    status = Column(Enum('new', 'accepted', 'declined'), nullable=False, default='new')
 
 class Wall(BaseModel):
     __tablename__ = "wall"
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('User.id'), nullable=False) # 'user_id'
-    username = Column(String(45), ForeignKey('User.username'), nullable=False, unique=True) # 'username'
-    photo = Column(BLOB, ForeignKey('photo'), nullable=True)
-    genre_id = Column(Integer, ForeignKey('Genre.id'), nullable=False) # 'genre_id'
+    user_id = Column(Integer, ForeignKey('user.id'), nullable=False) # 'user_id'
+    genre_id = Column(Integer, ForeignKey('genre.id'), nullable=False) # 'genre_id'
     datetime = Column(DateTime, nullable=False, default=datetime.utcnow())
     text = Column(String(500), nullable=False)
     photo_wall = Column(BLOB, nullable=True)

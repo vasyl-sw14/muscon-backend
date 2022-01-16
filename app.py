@@ -5,7 +5,7 @@ import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
-from models import User, Session, Wall
+from models import User, Session, Wall, Friends
 from flask_httpauth import HTTPBasicAuth
 
 
@@ -139,6 +139,76 @@ def display_news():
     cursor.fetchall()
     db.close()
     return 'template'
+
+@app.route('/<id>/<friend>', methods=['POST'])
+def send_friend_request(id, friend):
+    find_friend = session.query(User).filter(User.username==friend).one_or_none()
+
+    if find_friend is None:
+        return 'Such user doesn\'t exist'
+
+    new_friend_1 = Friends(
+        user_id_1 = id,
+        user_id_2 = find_friend.id,
+        status = 'new'
+    )
+
+    new_friend_2 = Friends(
+        user_id_1 = find_friend.id,
+        user_id_2 = id,
+        status = 'new'
+    )
+
+    session.add(new_friend_1)
+    session.add(new_friend_2)
+    session.commit()
+    return 'succesful request'
+
+@app.route('/<id>/<friend>', methods=['PUT'])
+def accept_friend_request(id, friend):
+    find_user = session.query(User).filter(User.username == friend).one_or_none()
+    find_friend_1 = session.query(Friends).filter(Friends.user_id_1 == id).filter(Friends.user_id_2 == find_user.id).one_or_none()
+    find_friend_1.status = 'accepted'
+    find_friend_2 = session.query(Friends).filter(Friends.user_id_2 == id).filter(Friends.user_id_1 == find_user.id).one_or_none()
+    find_friend_2.status = 'accepted'
+    session.commit()
+    return 'You are friends now!'
+
+@app.route('/<id>/<friend>', methods=['DELETE'])
+def decline_friend_request(id, friend):
+    find_user = session.query(User).filter(User.username == friend).one_or_none()
+    find_friend_1 = session.query(Friends).filter(Friends.user_id_1 == id).filter(Friends.user_id_2 == find_user.id).one_or_none()
+    find_friend_1.status = 'declined'
+    find_friend_2 = session.query(Friends).filter(Friends.user_id_2 == id).filter(Friends.user_id_1 == find_user.id).one_or_none()
+    find_friend_2.status = 'declined'
+    session.commit()
+    return 'You are not friends'
+
+@app.route('/<id>/<friend>', methods=['GET'])
+def get_friend(id, friend):
+    find_user = session.query(User).filter(User.username == friend).one_or_none()
+
+    if find_user is None:
+        return 'User with such a username doesn\'t exist'
+
+    find_friend = session.query(Friends).filter(Friends.user_id_1 == id).filter(Friends.user_id_2 == find_user.id).one_or_none()
+    
+    if find_friend is None:
+        return 'You don\'t have a friend with such username'
+
+    if find_friend.status!='accepted':
+        return 'You are not friends'
+
+    return find_friend
+
+@app.route('/<id>/friends', methods=['GET'])
+def get_friends(id):
+    find_friends = session.query(Friends).filter(Friends.user_id_1 == id).filter(Friends.status == 'accepted').all()
+
+    if find_friends is None:
+        return 'You have no friends'
+    
+    return jsonify(find_friends)
 
 
 if __name__ == "__main__":
