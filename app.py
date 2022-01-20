@@ -7,10 +7,13 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from models import User, Session, Wall, Friends
 from flask_httpauth import HTTPBasicAuth
+from flask_socketio import SocketIO, send, emit
 
 
 app = Flask(__name__)
 app.config["DEBUG"] = True
+app.config["SECRET_KEY"] = "secret_key"
+socketio = SocketIO(app)
 
 DATABASE = "./test.db"
 
@@ -35,6 +38,11 @@ def get_db():
     return db
 
 
+@socketio.on('message')
+def handle_message(data):
+    send(data)
+
+
 @app.route('/', methods=['GET'])
 def home():
     return "MusCon Backend"
@@ -46,7 +54,8 @@ def create_user():
     new_user = User(
         username=data['username'],
         email=data['email'],
-        password=bcrypt.generate_password_hash(data['password']).decode('utf-8'),
+        password=bcrypt.generate_password_hash(
+            data['password']).decode('utf-8'),
         city=data['city'],
         photo=data['photo']
     )
@@ -69,9 +78,11 @@ def login():
     data = request.get_json()
     user = User(
         username=data['username'],
-        password=bcrypt.generate_password_hash(data['password']).decode('utf-8'),
+        password=bcrypt.generate_password_hash(
+            data['password']).decode('utf-8'),
     )
-    user = session.query(User).filter(User.username == data['username']).one_or_none()
+    user = session.query(User).filter(
+        User.username == data['username']).one_or_none()
     if user is None:
         return 'User with such username was not found'
 
@@ -140,23 +151,25 @@ def display_news():
     db.close()
     return 'template'
 
+
 @app.route('/<id>/<friend>', methods=['POST'])
 def send_friend_request(id, friend):
-    find_friend = session.query(User).filter(User.username==friend).one_or_none()
+    find_friend = session.query(User).filter(
+        User.username == friend).one_or_none()
 
     if find_friend is None:
         return 'Such user doesn\'t exist'
 
     new_friend_1 = Friends(
-        user_id_1 = id,
-        user_id_2 = find_friend.id,
-        status = 'new'
+        user_id_1=id,
+        user_id_2=find_friend.id,
+        status='new'
     )
 
     new_friend_2 = Friends(
-        user_id_1 = find_friend.id,
-        user_id_2 = id,
-        status = 'new'
+        user_id_1=find_friend.id,
+        user_id_2=id,
+        status='new'
     )
 
     session.add(new_friend_1)
@@ -164,52 +177,66 @@ def send_friend_request(id, friend):
     session.commit()
     return 'succesful request'
 
+
 @app.route('/<id>/<friend>', methods=['PUT'])
 def accept_friend_request(id, friend):
-    find_user = session.query(User).filter(User.username == friend).one_or_none()
-    find_friend_1 = session.query(Friends).filter(Friends.user_id_1 == id).filter(Friends.user_id_2 == find_user.id).one_or_none()
+    find_user = session.query(User).filter(
+        User.username == friend).one_or_none()
+    find_friend_1 = session.query(Friends).filter(Friends.user_id_1 == id).filter(
+        Friends.user_id_2 == find_user.id).one_or_none()
     find_friend_1.status = 'accepted'
-    find_friend_2 = session.query(Friends).filter(Friends.user_id_2 == id).filter(Friends.user_id_1 == find_user.id).one_or_none()
+    find_friend_2 = session.query(Friends).filter(Friends.user_id_2 == id).filter(
+        Friends.user_id_1 == find_user.id).one_or_none()
     find_friend_2.status = 'accepted'
     session.commit()
     return 'You are friends now!'
 
+
 @app.route('/<id>/<friend>', methods=['DELETE'])
 def decline_friend_request(id, friend):
-    find_user = session.query(User).filter(User.username == friend).one_or_none()
-    find_friend_1 = session.query(Friends).filter(Friends.user_id_1 == id).filter(Friends.user_id_2 == find_user.id).one_or_none()
+    find_user = session.query(User).filter(
+        User.username == friend).one_or_none()
+    find_friend_1 = session.query(Friends).filter(Friends.user_id_1 == id).filter(
+        Friends.user_id_2 == find_user.id).one_or_none()
     find_friend_1.status = 'declined'
-    find_friend_2 = session.query(Friends).filter(Friends.user_id_2 == id).filter(Friends.user_id_1 == find_user.id).one_or_none()
+    find_friend_2 = session.query(Friends).filter(Friends.user_id_2 == id).filter(
+        Friends.user_id_1 == find_user.id).one_or_none()
     find_friend_2.status = 'declined'
     session.commit()
     return 'You are not friends'
 
+
 @app.route('/<id>/<friend>', methods=['GET'])
 def get_friend(id, friend):
-    find_user = session.query(User).filter(User.username == friend).one_or_none()
+    find_user = session.query(User).filter(
+        User.username == friend).one_or_none()
 
     if find_user is None:
         return 'User with such a username doesn\'t exist'
 
-    find_friend = session.query(Friends).filter(Friends.user_id_1 == id).filter(Friends.user_id_2 == find_user.id).one_or_none()
-    
+    find_friend = session.query(Friends).filter(Friends.user_id_1 == id).filter(
+        Friends.user_id_2 == find_user.id).one_or_none()
+
     if find_friend is None:
         return 'You don\'t have a friend with such username'
 
-    if find_friend.status!='accepted':
+    if find_friend.status != 'accepted':
         return 'You are not friends'
 
     return find_friend
 
+
 @app.route('/<id>/friends', methods=['GET'])
 def get_friends(id):
-    find_friends = session.query(Friends).filter(Friends.user_id_1 == id).filter(Friends.status == 'accepted').all()
+    find_friends = session.query(Friends).filter(
+        Friends.user_id_1 == id).filter(Friends.status == 'accepted').all()
 
     if find_friends is None:
         return 'You have no friends'
-    
+
     return jsonify(find_friends)
 
 
 if __name__ == "__main__":
+    socketio.run(app)
     app.run()

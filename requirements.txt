@@ -1,0 +1,8 @@
+flask=2.0.0
+spotipy
+sqlite3
+flask_sqlalchemy
+flask_bcrypt
+flask_httpauth
+flask_socketio
+flask-mysqldb
