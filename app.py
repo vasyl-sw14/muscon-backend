@@ -1,11 +1,10 @@
-import MySQLdb
 from flask import Flask, g, jsonify, request, render_template
-import sqlite3
 import spotipy
+import MySQLdb
 from spotipy.oauth2 import SpotifyClientCredentials
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
-from models import User, Session, Wall, Friends
+from models import User, Wall, Session, Friends
 from flask_httpauth import HTTPBasicAuth
 from flask_socketio import SocketIO, send, emit
 
@@ -19,23 +18,9 @@ DATABASE = "./test.db"
 
 sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id="7ed78a10ad33404c952dec000863ec9e",
                                                            client_secret="df0f57a438454795a9b1da87825000de"))
-db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 auth = HTTPBasicAuth()
 session = Session()
-
-
-def create_app():
-    app = Flask(__name__)
-    app.config.from_pyfile('config.py')
-    db.init_app(app)
-
-
-def get_db():
-    db = getattr(g, '_database', None)
-    if db is None:
-        db = g._database = sqlite3.connect(DATABASE)
-    return db
 
 
 @socketio.on('message')
@@ -95,8 +80,19 @@ def login():
 @app.route('/genres', methods=['GET'])
 def get_genres():
     result = sp.recommendation_genre_seeds()
-    print(result)
     return jsonify(result['genres'])
+
+
+@app.route('/songs', methods=['POST'])
+def get_songs():
+    id = request.form.get('id')
+    result = sp.artist_top_tracks(id)
+    tracks = []
+    for track in result['tracks']:
+        if (len(track['album']['images']) > 0):
+            tracks.append(
+                {'id': track['id'], 'name': track['name'], 'image': track['album']['images'][0]})
+    return jsonify(tracks)
 
 
 @app.route('/get_artists', methods=['POST'])
@@ -111,7 +107,7 @@ def get_artists():
             artist_data = sp.artist(artist['uri'])
             if not any(a['name'] == artist_data['name'] for a in artists) and len(artist_data['images']) > 0:
                 artists.append(
-                    {'name': artist_data['name'], 'image': artist_data['images'][0],
+                    {'id': artist_data['id'], 'name': artist_data['name'], 'image': artist_data['images'][0],
                      'popularity': artist_data['popularity']})
     artists.sort(key=lambda x: x['popularity'], reverse=True)
     return jsonify(artists)
