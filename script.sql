@@ -1,7 +1,7 @@
 create table if not exists user(
 id INT AUTO_INCREMENT PRIMARY KEY,
 username VARCHAR(45) NOT NULL,
-password VARCHAR(45) NOT NULL,
+password VARCHAR(160) NOT NULL,
 photo BLOB NULL,
 city VARCHAR(45) NOT NULL,
 email VARCHAR(45) NOT NULL

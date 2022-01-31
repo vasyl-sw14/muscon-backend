@@ -1,5 +1,3 @@
-from typing import Text
-# import datetime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import (
     Column,
@@ -28,9 +26,9 @@ session = Session()
 class User(BaseModel):
     __tablename__ = "user"
     id = Column(Integer, primary_key=True)
-    username = Column(String(45), nullable=False, unique=True)
+    username = Column(String(45), nullable=False)  # unique=True
     email = Column(String(45), nullable=False)
-    password = Column(String(60), nullable=False)
+    password = Column(String(160), nullable=False)
     city = Column(String(40), nullable=False)
     photo = Column(BLOB, nullable=True)
 
@@ -44,6 +42,7 @@ class Friends(BaseModel):
                        nullable=False, primary_key=True)
     status = Column(Enum('new', 'accepted', 'declined'),
                     nullable=False, default='new')
+
 
 
 class Wall(BaseModel):
@@ -60,5 +59,11 @@ class Wall(BaseModel):
 
 class Genre(BaseModel):
     __tablename__ = "genre"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(45), nullable=False)
+
+
+class Artist(BaseModel):
+    __tablename__ = "artist"
     id = Column(Integer, primary_key=True)
     name = Column(String(45), nullable=False)
