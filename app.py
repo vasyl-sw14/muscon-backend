@@ -1,40 +1,36 @@
-import MySQLdb
 from flask import Flask, g, jsonify, request, render_template
-import sqlite3
 import spotipy
 from rich.markup import render
 from spotipy.oauth2 import SpotifyClientCredentials
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from models import User, Session, Wall, Friends, Genre, Artist, metadata
+import MySQLdb
+from spotipy.oauth2 import SpotifyClientCredentials
+from flask_sqlalchemy import SQLAlchemy
+from flask_bcrypt import Bcrypt
+from models import User, Wall, Session, Friends
 from flask_httpauth import HTTPBasicAuth
-
+from flask_socketio import SocketIO, send, emit
 from schemes import UserSchema, WallSchema
 
 app = Flask(__name__)
 app.config["DEBUG"] = True
+app.config["SECRET_KEY"] = "secret_key"
+socketio = SocketIO(app)
 
 DATABASE = "./test.db"
 
 sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id="7ed78a10ad33404c952dec000863ec9e",
                                                            client_secret="df0f57a438454795a9b1da87825000de"))
-db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 auth = HTTPBasicAuth()
 session = Session()
 
 
-def create_app():
-    app = Flask(__name__)
-    app.config.from_pyfile('config.py')
-    db.init_app(app)
-
-
-def get_db():
-    db = getattr(g, '_database', None)
-    if db is None:
-        db = g._database = sqlite3.connect(DATABASE)
-    return db
+@socketio.on('message')
+def handle_message(data):
+    send(data)
 
 
 @app.route('/', methods=['GET'])
@@ -48,7 +44,8 @@ def create_user():
     new_user = User(
         username=data['username'],
         email=data['email'],
-        password=bcrypt.generate_password_hash(data['password']).decode('utf-8'),
+        password=bcrypt.generate_password_hash(
+            data['password']).decode('utf-8'),
         city=data['city'],
         photo=data['photo']
     )
@@ -71,9 +68,11 @@ def login():
     data = request.get_json()
     user = User(
         username=data['username'],
-        password=bcrypt.generate_password_hash(data['password']).decode('utf-8'),
+        password=bcrypt.generate_password_hash(
+            data['password']).decode('utf-8'),
     )
-    user = session.query(User).filter(User.username == data['username']).one_or_none()
+    user = session.query(User).filter(
+        User.username == data['username']).one_or_none()
     if user is None:
         return 'User with such username was not found'
 
@@ -86,8 +85,19 @@ def login():
 @app.route('/genres', methods=['GET'])
 def get_genres():
     result = sp.recommendation_genre_seeds()
-    print(result)
     return jsonify(result['genres'])
+
+
+@app.route('/songs', methods=['POST'])
+def get_songs():
+    id = request.form.get('id')
+    result = sp.artist_top_tracks(id)
+    tracks = []
+    for track in result['tracks']:
+        if (len(track['album']['images']) > 0):
+            tracks.append(
+                {'id': track['id'], 'name': track['name'], 'image': track['album']['images'][0]})
+    return jsonify(tracks)
 
 
 @app.route('/get_artists', methods=['POST'])
@@ -102,7 +112,7 @@ def get_artists():
             artist_data = sp.artist(artist['uri'])
             if not any(a['name'] == artist_data['name'] for a in artists) and len(artist_data['images']) > 0:
                 artists.append(
-                    {'name': artist_data['name'], 'image': artist_data['images'][0],
+                    {'id': artist_data['id'], 'name': artist_data['name'], 'image': artist_data['images'][0],
                      'popularity': artist_data['popularity']})
     artists.sort(key=lambda x: x['popularity'], reverse=True)
     return jsonify(artists)
@@ -232,7 +242,8 @@ def decline_friend_request(id, friend):
 
 @app.route('/<id>/<friend>', methods=['GET'])
 def get_friend(id, friend):
-    find_user = session.query(User).filter(User.username == friend).one_or_none()
+    find_user = session.query(User).filter(
+        User.username == friend).one_or_none()
 
     if find_user is None:
         return 'User with such a username doesn\'t exist'
@@ -251,7 +262,9 @@ def get_friend(id, friend):
 
 @app.route('/<id>/friends', methods=['GET'])
 def get_friends(id):
-    find_friends = session.query(Friends).filter(Friends.user_id_1 == id).filter(Friends.status == 'accepted').all()
+    find_friends = session.query(Friends).filter(
+
+        Friends.user_id_1 == id).filter(Friends.status == 'accepted').all()
 
     if find_friends is None:
         return 'You have no friends'
@@ -259,7 +272,6 @@ def get_friends(id):
     return jsonify(find_friends)
 
 
-
-
 if __name__ == "__main__":
+    socketio.run(app)
     app.run()

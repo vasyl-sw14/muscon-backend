@@ -1,0 +1,8 @@
+flask
+spotipy
+flask_sqlalchemy
+flask_bcrypt
+flask_httpauth
+flask_socketio
+psycopg2-binary
+Flask-Migrate
