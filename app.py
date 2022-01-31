@@ -2,12 +2,14 @@ import MySQLdb
 from flask import Flask, g, jsonify, request, render_template
 import sqlite3
 import spotipy
+from rich.markup import render
 from spotipy.oauth2 import SpotifyClientCredentials
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
-from models import User, Session, Wall, Friends
+from models import User, Session, Wall, Friends, Genre, Artist, metadata
 from flask_httpauth import HTTPBasicAuth
 
+from schemes import UserSchema, WallSchema
 
 app = Flask(__name__)
 app.config["DEBUG"] = True
@@ -111,19 +113,17 @@ def create_news():
     data = request.get_json()
     new = Wall(
         user_id=data['user_id'],
-        username=data['username'],
-        photo=data['photo'],
-        genre_id=data['genres'],
+        genre_id=data['genre_id'],
         datetime=data['date'],
-        text=data['string'],
+        text=data['text'],
         photo_wall=data['photo']
     )
 
     if not session.query(Wall).filter(Wall.user_id != data['user_id']).one_or_none() is None:
-        return 'There isn`t such user', '400'
+        return 'Such user doesn\'t exist', '400'
 
     if not session.query(User).filter(Wall.genre_id != data['genre_id']).one_or_none() is None:
-        return 'There isn`t such genre', '400'
+        return 'Such genre doesn\'t exist', '400'
 
     session.add(new)
     session.commit()
@@ -131,58 +131,104 @@ def create_news():
     return jsonify({'message': 'successful operation!'})
 
 
-@app.route('/display_news', methods=['GET'])
-def display_news():
-    db = MySQLdb.connect("127.0.0.1", "root", "Bonia9977", "muscon")
-    cursor = db.cursor()
-    cursor.execute("SELECT * from wall")
-    cursor.fetchall()
-    db.close()
-    return 'template'
+@app.route('/news', methods=['GET'])
+def display_news(id=all):
+    get_news = session.query(User).filter(Wall.id == id).all()
+    wall_schema = WallSchema()
+    if get_news is None:
+        return 'There wasn`t any news yet'
+    return jsonify(get_news)
+
+
+@app.route('/friends', methods=['GET'])
+def suggested_friends(username=all):
+    find_user = session.query(User).filter(User.username == username).all()
+    user_schema = UserSchema()
+    return jsonify('You may like: ', find_user)
+
+
+@app.route('/edit_genre', methods=['POST'])
+def edit_genre():
+    data = request.get_json()
+    edit_profile = Genre(
+        name=data['name_of_genre']
+    )
+
+    if not session.query(Genre).filter(Genre.name != data['name_of_genre']).one_or_none() is None:
+        return 'There isn`t such genre in our base', '400'
+
+    session.add(edit_genre)
+    session.commit()
+
+    return jsonify({'message': 'your data was changed'})
+
+
+@app.route('/edit_artist', methods=['POST'])
+def edit_artist():
+    data = request.get_json()
+    edit_profile = Artist(
+        name=data['name_of_artist']
+    )
+
+    if not session.query(Artist).filter(Artist.name != data['name_of_artist']).one_or_none() is None:
+        return 'There isn`t such artist in our base', '400'
+
+    session.add(edit_artist)
+    session.commit()
+
+    return jsonify({'message': 'your data was changed'})
+
 
 @app.route('/<id>/<friend>', methods=['POST'])
 def send_friend_request(id, friend):
-    find_friend = session.query(User).filter(User.username==friend).one_or_none()
+    find_friend = session.query(User).filter(User.username == friend).one_or_none()
 
     if find_friend is None:
         return 'Such user doesn\'t exist'
 
     new_friend_1 = Friends(
-        user_id_1 = id,
-        user_id_2 = find_friend.id,
-        status = 'new'
+        user_id_1=id,
+        user_id_2=find_friend.id,
+        status='new'
     )
 
     new_friend_2 = Friends(
-        user_id_1 = find_friend.id,
-        user_id_2 = id,
-        status = 'new'
+        user_id_1=find_friend.id,
+        user_id_2=id,
+        status='new'
     )
 
     session.add(new_friend_1)
     session.add(new_friend_2)
     session.commit()
-    return 'succesful request'
+    return 'successful request'
+
 
 @app.route('/<id>/<friend>', methods=['PUT'])
 def accept_friend_request(id, friend):
     find_user = session.query(User).filter(User.username == friend).one_or_none()
-    find_friend_1 = session.query(Friends).filter(Friends.user_id_1 == id).filter(Friends.user_id_2 == find_user.id).one_or_none()
+    find_friend_1 = session.query(Friends).filter(Friends.user_id_1 == id).filter(
+        Friends.user_id_2 == find_user.id).one_or_none()
     find_friend_1.status = 'accepted'
-    find_friend_2 = session.query(Friends).filter(Friends.user_id_2 == id).filter(Friends.user_id_1 == find_user.id).one_or_none()
+    find_friend_2 = session.query(Friends).filter(Friends.user_id_2 == id).filter(
+        Friends.user_id_1 == find_user.id).one_or_none()
     find_friend_2.status = 'accepted'
     session.commit()
     return 'You are friends now!'
 
+
 @app.route('/<id>/<friend>', methods=['DELETE'])
 def decline_friend_request(id, friend):
     find_user = session.query(User).filter(User.username == friend).one_or_none()
-    find_friend_1 = session.query(Friends).filter(Friends.user_id_1 == id).filter(Friends.user_id_2 == find_user.id).one_or_none()
+    find_friend_1 = session.query(Friends).filter(Friends.user_id_1 == id).filter(
+        Friends.user_id_2 == find_user.id).one_or_none()
     find_friend_1.status = 'declined'
-    find_friend_2 = session.query(Friends).filter(Friends.user_id_2 == id).filter(Friends.user_id_1 == find_user.id).one_or_none()
+    find_friend_2 = session.query(Friends).filter(Friends.user_id_2 == id).filter(
+        Friends.user_id_1 == find_user.id).one_or_none()
     find_friend_2.status = 'declined'
     session.commit()
     return 'You are not friends'
+
 
 @app.route('/<id>/<friend>', methods=['GET'])
 def get_friend(id, friend):
@@ -191,15 +237,17 @@ def get_friend(id, friend):
     if find_user is None:
         return 'User with such a username doesn\'t exist'
 
-    find_friend = session.query(Friends).filter(Friends.user_id_1 == id).filter(Friends.user_id_2 == find_user.id).one_or_none()
-    
+    find_friend = session.query(Friends).filter(Friends.user_id_1 == id).filter(
+        Friends.user_id_2 == find_user.id).one_or_none()
+
     if find_friend is None:
         return 'You don\'t have a friend with such username'
 
-    if find_friend.status!='accepted':
+    if find_friend.status != 'accepted':
         return 'You are not friends'
 
     return find_friend
+
 
 @app.route('/<id>/friends', methods=['GET'])
 def get_friends(id):
@@ -207,8 +255,10 @@ def get_friends(id):
 
     if find_friends is None:
         return 'You have no friends'
-    
+
     return jsonify(find_friends)
+
+
 
 
 if __name__ == "__main__":
