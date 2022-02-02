@@ -44,7 +44,6 @@ class Friends(BaseModel):
                     nullable=False, default='new')
 
 
-
 class Wall(BaseModel):
     __tablename__ = "wall"
     id = Column(Integer, primary_key=True)

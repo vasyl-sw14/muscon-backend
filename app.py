@@ -272,6 +272,22 @@ def get_friends(id):
     return jsonify(find_friends)
 
 
+@app.route('/get_top_artists', methods=['POST'])
+def get_top_artists():
+    genres = request.form.get('genres')
+    artists = []
+    result = sp.recommendations(seed_genres=genres.split(', '), limit=10)
+    for track in result['tracks']:
+        for artist in track['artists']:
+            artist_data = sp.artist(artist['uri'])
+            if not any(a['name'] == artist_data['name'] for a in artists) and len(artist_data['images']) > 0:
+                artists.append(
+                    {'id': artist_data['id'], 'name': artist_data['name'], 'image': artist_data['images'][0],
+                     'popularity': artist_data['popularity']})
+    artists.sort(key=lambda x: x['popularity'] == 100, reverse=True)
+    return jsonify(artists)
+
+
 if __name__ == "__main__":
     socketio.run(app)
     app.run()
