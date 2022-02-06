@@ -288,6 +288,8 @@ def get_top_artists():
     return jsonify(artists)
 
 
+
+
 if __name__ == "__main__":
     socketio.run(app)
     app.run()
