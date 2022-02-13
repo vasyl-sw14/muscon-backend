@@ -4,6 +4,8 @@ from rich.markup import render
 from spotipy.oauth2 import SpotifyClientCredentials
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
+from sqlalchemy.sql.functions import user
+
 from models import User, Session, Wall, Friends, Genre, Artist, metadata
 import MySQLdb
 from spotipy.oauth2 import SpotifyClientCredentials
@@ -95,6 +97,16 @@ def get_genres():
     return jsonify(result['genres'])
 
 
+@app.route('/<user_id>/<genre_id>', methods=['POST'])
+def add_genre_for_user(user_id, genre_id):
+
+    user.genre_id = []
+    user.genre_id.append(genre_id)
+    session.commit()
+
+    return jsonify({'message': 'successful operation'})
+
+
 @app.route('/songs', methods=['POST'])
 def get_songs():
     id = request.form.get('id')
@@ -106,16 +118,17 @@ def get_songs():
                 {'id': track['id'], 'name': track['name'], 'image': track['album']['images'][0]})
     return jsonify(tracks)
 
+
 @app.route('/<user_id>/<song_id>', methods=['PUT'])
 def add_song_for_user(user_id, song_id):
     user = session.query(User).filter(User.id == user_id).one_or_none()
     if user is None:
         return 'User not found', '404'
 
-    if user.track_id!=None:
+    if user.track_id != None:
         for track in user.track_id:
-            if track==song_id:
-                return jsonify({'message':'You already added that song'})
+            if track == song_id:
+                return jsonify({'message': 'You already added that song'})
     else:
         user.track_id = []
     user.track_id.append(song_id)
@@ -142,6 +155,16 @@ def get_artists():
     return jsonify(artists)
 
 
+@app.route('/<user_id>/<artist_id>', methods=['POST'])
+def add_artist_for_user(user_id, artist_id):
+
+    user.artist_id = []
+    user.artist_id.append(artist_id)
+    session.commit()
+
+    return jsonify({'message': 'successful operation'})
+
+
 @app.route('/wall', methods=['POST'])
 @jwt_required()
 def create_news():
@@ -157,9 +180,6 @@ def create_news():
         text=data['text'],
         photo_wall=data['photo']
     )
-
-    #if not session.query(Wall).filter(Wall.user_id != data['user_id']).one_or_none() is None:
-     #   return 'Such user doesn\'t exist', '400'
 
     if not session.query(User).filter(Wall.genre_id != data['genre_id']).one_or_none() is None:
         return 'Such genre doesn\'t exist', '400'
@@ -188,53 +208,39 @@ def suggested_friends(username=all):
     return jsonify('You may like: ', find_user)
 
 
-@app.route('/edit_genre', methods=['POST'])
+@app.route('/edit_genre', methods=['PUT'])
 @jwt_required()
-def edit_genre():
+def edit_genre(genre_id=None):
     current_user = get_jwt_identity()
     if current_user is None:
         return make_response(jsonify({"403": "Access is denied"}), 403)
 
-    data = request.get_json()
-    edit_profile = Genre(
-        name=data['name_of_genre']
-    )
+    user.genre_id = []
+    user.genre_id.append(genre_id)
 
-    if not session.query(Genre).filter(Genre.name != data['name_of_genre']).one_or_none() is None:
-        return 'There isn`t such genre in our base', '400'
-
-    session.add(edit_genre)
     session.commit()
+    return jsonify({'message': 'successful operation'})
 
-    return jsonify({'message': 'your data was changed'})
 
-
-@app.route('/edit_artist', methods=['POST'])
+@app.route('/edit_artist', methods=['PUT'])
 @jwt_required
-def edit_artist():
+def edit_artist(artist_id=None):
     current_user = get_jwt_identity()
     if current_user is None:
         return make_response(jsonify({"403": "Access is denied"}), 403)
 
-    data = request.get_json()
-    edit_profile = Artist(
-        name=data['name_of_artist']
-    )
+    user.artist_id = []
+    user.genre_id.append(artist_id)
 
-    if not session.query(Artist).filter(Artist.name != data['name_of_artist']).one_or_none() is None:
-        return 'There isn`t such artist in our base', '400'
-
-    session.add(edit_artist)
     session.commit()
-
-    return jsonify({'message': 'your data was changed'})
+    return jsonify({'message': 'successful operation'})
 
 
 @app.route('/<id>/<friend>', methods=['POST'])
 @jwt_required()
 def send_friend_request(id, friend):
     current_user_id = get_jwt_identity()
-    if int(id)!=current_user_id:
+    if int(id) != current_user_id:
         return make_response(jsonify({"403": "Access is denied"}), 403)
 
     find_friend = session.query(User).filter(User.username == friend).one_or_none()
@@ -264,7 +270,7 @@ def send_friend_request(id, friend):
 @jwt_required()
 def accept_friend_request(id, friend):
     current_user_id = get_jwt_identity()
-    if int(id)!=current_user_id:
+    if int(id) != current_user_id:
         return make_response(jsonify({"403": "Access is denied"}), 403)
 
     find_user = session.query(User).filter(User.username == friend).one_or_none()
@@ -284,9 +290,9 @@ def accept_friend_request(id, friend):
 @jwt_required()
 def decline_friend_request(id, friend):
     current_user_id = get_jwt_identity()
-    if int(id)!=current_user_id:
+    if int(id) != current_user_id:
         return make_response(jsonify({"403": "Access is denied"}), 403)
-        
+
     find_user = session.query(User).filter(User.username == friend).one_or_none()
     find_friend_1 = session.query(Friends).filter(Friends.user_id_1 == id).filter(
         Friends.user_id_2 == find_user.id).one_or_none()
@@ -304,7 +310,7 @@ def decline_friend_request(id, friend):
 @jwt_required()
 def get_friend(id, friend):
     current_user_id = get_jwt_identity()
-    if int(id)!=current_user_id:
+    if int(id) != current_user_id:
         return make_response(jsonify({"403": "Access is denied"}), 403)
 
     find_user = session.query(User).filter(
@@ -329,7 +335,7 @@ def get_friend(id, friend):
 @jwt_required()
 def get_friends(id):
     current_user_id = get_jwt_identity()
-    if int(id)!=current_user_id:
+    if int(id) != current_user_id:
         return make_response(jsonify({"403": "Access is denied"}), 403)
 
     find_friends = session.query(Friends).filter(
@@ -356,8 +362,6 @@ def get_top_artists():
                      'popularity': artist_data['popularity']})
     artists.sort(key=lambda x: x['popularity'] == 100, reverse=True)
     return jsonify(artists)
-
-
 
 
 if __name__ == "__main__":

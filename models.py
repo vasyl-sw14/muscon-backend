@@ -32,7 +32,10 @@ class User(BaseModel):
     password = Column(String(160), nullable=False)
     city = Column(String(40), nullable=False)
     photo = Column(String(250), nullable=True)
+    genre_id = Column(ARRAY(String(250)), nullable=False)
+    artist_id = Column(ARRAY(String(250)), nullable=False)
     track_id = Column(ARRAY(String(250)), nullable=True)
+
 
 
 class Friends(BaseModel):
