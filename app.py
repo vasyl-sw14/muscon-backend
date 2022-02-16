@@ -1,5 +1,6 @@
 from flask import Flask, g, jsonify, request, render_template, make_response
 import spotipy
+from flask_cors import CORS
 from rich.markup import render
 from spotipy.oauth2 import SpotifyClientCredentials
 from flask_sqlalchemy import SQLAlchemy
@@ -23,6 +24,7 @@ app = Flask(__name__)
 app.config["DEBUG"] = True
 app.config["SECRET_KEY"] = "secret_key"
 socketio = SocketIO(app)
+CORS(app, support_credentials=True)
 
 DATABASE = "./test.db"
 

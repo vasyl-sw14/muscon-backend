@@ -37,7 +37,6 @@ class User(BaseModel):
     track_id = Column(ARRAY(String(250)), nullable=True)
 
 
-
 class Friends(BaseModel):
     __tablename__ = "friends"
 
