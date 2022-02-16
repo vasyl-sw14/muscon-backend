@@ -71,21 +71,19 @@ def create_user():
     return jsonify({'message': 'successful operation'})
 
 
-@app.route('/login', methods=['POST'])
+@app.route('/login', methods=['GET'])
 @auth.verify_password
 def login():
-    data = request.get_json()
-    user = User(
-        username=data['username'],
-        password=bcrypt.generate_password_hash(
-            data['password']).decode('utf-8'),
-    )
+    auth = request.authorization
+    if not auth or not auth.username or not auth.password:
+        return make_response('could not verify', 401, {'WWW.Authantication': 'Basic realm:"login require"'})
+
     user = session.query(User).filter(
-        User.username == data['username']).one_or_none()
+        User.username == auth.username).one_or_none()
     if user is None:
         return 'User with such username was not found'
 
-    if not bcrypt.check_password_hash(user.password, data['password']):
+    if not bcrypt.check_password_hash(user.password, auth.password):
         return 'Wrong password'
 
     access_token = create_access_token(identity=user.id)
@@ -120,8 +118,12 @@ def get_songs():
                 {'id': track['id'], 'name': track['name'], 'image': track['album']['images'][0]})
     return jsonify(tracks)
 
+<<<<<<< Updated upstream
 
 @app.route('/<user_id>/<song_id>', methods=['PUT'])
+=======
+@app.route('/songs/<user_id>/<song_id>', methods=['PUT'])
+>>>>>>> Stashed changes
 def add_song_for_user(user_id, song_id):
     user = session.query(User).filter(User.id == user_id).one_or_none()
     if user is None:
@@ -284,7 +286,10 @@ def accept_friend_request(id, friend):
         Friends.user_id_1 == find_user.id).one_or_none()
     find_friend_2.status = 'accepted'
 
-    session.commit()
+    try:
+        session.commit()
+    except:
+        session.rollback()
     return 'You are friends now!'
 
 
@@ -320,7 +325,7 @@ def get_friend(id, friend):
 
     if find_user is None:
         return 'User with such a username doesn\'t exist'
-
+    
     find_friend = session.query(Friends).filter(Friends.user_id_1 == id).filter(
         Friends.user_id_2 == find_user.id).one_or_none()
 
@@ -328,9 +333,11 @@ def get_friend(id, friend):
         return 'You don\'t have a friend with such username'
 
     if find_friend.status != 'accepted':
-        return 'You are not friends'
-
-    return find_friend
+        return 'You are not friends yet'
+    
+    found_friend = session.query(User).filter(User.id==find_friend.user_id_2).one_or_none()
+    user = UserSchema(exclude=['password']).dump(found_friend)
+    return user
 
 
 @app.route('/<id>/friends', methods=['GET'])
@@ -346,8 +353,13 @@ def get_friends(id):
 
     if find_friends is None:
         return 'You have no friends'
-
-    return jsonify(find_friends)
+    found_friend=[]
+    for friend in find_friends:
+        found_friend.append(session.query(User).filter(User.id==friend.user_id_2).one_or_none())
+    user = []
+    for friend in found_friend:
+        user.append(UserSchema(exclude=['password']).dump(friend))
+    return jsonify(user)
 
 
 @app.route('/get_top_artists', methods=['POST'])
