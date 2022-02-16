@@ -118,12 +118,11 @@ def get_songs():
                 {'id': track['id'], 'name': track['name'], 'image': track['album']['images'][0]})
     return jsonify(tracks)
 
-<<<<<<< Updated upstream
+
 
 @app.route('/<user_id>/<song_id>', methods=['PUT'])
-=======
 @app.route('/songs/<user_id>/<song_id>', methods=['PUT'])
->>>>>>> Stashed changes
+
 def add_song_for_user(user_id, song_id):
     user = session.query(User).filter(User.id == user_id).one_or_none()
     if user is None:
