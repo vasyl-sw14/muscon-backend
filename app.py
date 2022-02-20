@@ -1,6 +1,6 @@
 from flask import Flask, g, jsonify, request, render_template, make_response
 import spotipy
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 from rich.markup import render
 from spotipy.oauth2 import SpotifyClientCredentials
 from flask_sqlalchemy import SQLAlchemy
@@ -24,7 +24,7 @@ app = Flask(__name__)
 app.config["DEBUG"] = True
 app.config["SECRET_KEY"] = "secret_key"
 socketio = SocketIO(app)
-CORS(app, support_credentials=True)
+CORS(app)
 
 DATABASE = "./test.db"
 
@@ -48,6 +48,7 @@ def home():
 
 
 @app.route('/signup', methods=['POST'])
+@cross_origin(origin='localhost',headers=['Content- Type','Authorization'])
 def create_user():
     data = request.get_json()
     new_user = User(
