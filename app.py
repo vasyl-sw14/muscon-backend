@@ -70,6 +70,52 @@ def create_user():
 
     return jsonify({'message': 'successful operation'})
 
+@app.route('/edit_profile', methods = ['PUT'])
+@jwt_required()
+def edit_profile():
+    current_user = get_jwt_identity()
+    if current_user is None:
+        return make_response(jsonify({"403": "Access is denied"}), 403)
+
+    find_user = session.query(User).filter(User.id==current_user).one_or_none()
+    if find_user is None:
+        return 'User not found'
+
+    data = request.get_json()
+    
+
+    if not session.query(User).filter(User.username == data['username']).one_or_none() is None:
+        return 'This username already exists', '400'
+
+    if not session.query(User).filter(User.email == data['email']).one_or_none() is None:
+        return 'This email is taken', '400'
+
+    
+    find_user.username=data['username']
+    find_user.email=data['email']
+    find_user.password=bcrypt.generate_password_hash(data['password']).decode('utf-8')
+    find_user.city=data['city']
+    find_user.photo=data['photo']
+
+    session.commit()
+
+    return jsonify({'message': 'successful operation'})
+
+
+@app.route('/user', methods=['GET'])
+@jwt_required()
+def get_user():
+    current_user = get_jwt_identity()
+    if current_user is None:
+        return make_response(jsonify({"403": "Access is denied"}), 403)
+
+    find_user = session.query(User).filter(User.id==current_user).one_or_none()
+    if find_user is None:
+        return 'User not found'
+
+    user_schema = UserSchema()
+    user = user_schema.dump(find_user)
+    return user
 
 @app.route('/login', methods=['GET'])
 @auth.verify_password
