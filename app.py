@@ -26,8 +26,11 @@ app.config["DEBUG"] = True
 app.config["SECRET_KEY"] = "secret_key"
 socketio = SocketIO(app)
 CORS(app)
+<<<<<<< HEAD
 
 CORS(app)
+=======
+>>>>>>> 6e6cbf71f4d582f47b8b33f67fa45ca5e6dd45a1
 
 DATABASE = "./test.db"
 
@@ -168,13 +171,19 @@ def get_songs():
     return jsonify(tracks)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 @app.route('/songs/<user_id>/<song_id>', methods=['PUT'])
 =======
+=======
+>>>>>>> 6e6cbf71f4d582f47b8b33f67fa45ca5e6dd45a1
 
 
 @app.route('/<user_id>/<song_id>', methods=['PUT'])
 @app.route('/songs/<user_id>/<song_id>', methods=['PUT'])
 
+<<<<<<< HEAD
+>>>>>>> 6e6cbf71f4d582f47b8b33f67fa45ca5e6dd45a1
+=======
 >>>>>>> 6e6cbf71f4d582f47b8b33f67fa45ca5e6dd45a1
 def add_song_for_user(user_id, song_id):
     user = session.query(User).filter(User.id == user_id).one_or_none()
