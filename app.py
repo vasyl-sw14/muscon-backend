@@ -1,5 +1,6 @@
 from flask import Flask, g, jsonify, request, render_template, make_response
 import spotipy
+from flask_cors import CORS, cross_origin
 from rich.markup import render
 from spotipy.oauth2 import SpotifyClientCredentials
 from flask_sqlalchemy import SQLAlchemy
@@ -24,6 +25,7 @@ app = Flask(__name__)
 app.config["DEBUG"] = True
 app.config["SECRET_KEY"] = "secret_key"
 socketio = SocketIO(app)
+CORS(app)
 
 CORS(app)
 
@@ -165,7 +167,15 @@ def get_songs():
                 {'id': track['id'], 'name': track['name'], 'image': track['album']['images'][0]})
     return jsonify(tracks)
 
+<<<<<<< HEAD
 @app.route('/songs/<user_id>/<song_id>', methods=['PUT'])
+=======
+
+
+@app.route('/<user_id>/<song_id>', methods=['PUT'])
+@app.route('/songs/<user_id>/<song_id>', methods=['PUT'])
+
+>>>>>>> 6e6cbf71f4d582f47b8b33f67fa45ca5e6dd45a1
 def add_song_for_user(user_id, song_id):
     user = session.query(User).filter(User.id == user_id).one_or_none()
     if user is None:
