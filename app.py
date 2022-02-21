@@ -48,7 +48,6 @@ def home():
 
 
 @app.route('/signup', methods=['POST'])
-@cross_origin(origin='localhost',headers=['Content- Type','Authorization'])
 def create_user():
     data = request.get_json()
     new_user = User(
