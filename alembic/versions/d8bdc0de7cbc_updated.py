@@ -1,8 +1,8 @@
-"""add tracks to user
+"""updated
 
-Revision ID: 9704beaf6aa1
+Revision ID: d8bdc0de7cbc
 Revises: 
-Create Date: 2022-02-01 14:28:28.897805
+Create Date: 2022-02-17 17:48:53.447737
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '9704beaf6aa1'
+revision = 'd8bdc0de7cbc'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -35,6 +35,8 @@ def upgrade():
     sa.Column('password', sa.String(length=160), nullable=False),
     sa.Column('city', sa.String(length=40), nullable=False),
     sa.Column('photo', sa.String(length=250), nullable=True),
+    sa.Column('genre_id', sa.ARRAY(sa.String(length=250)), nullable=False),
+    sa.Column('artist_id', sa.ARRAY(sa.String(length=250)), nullable=False),
     sa.Column('track_id', sa.ARRAY(sa.String(length=250)), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
