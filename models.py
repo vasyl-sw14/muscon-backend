@@ -18,7 +18,7 @@ datetime.utcnow()
 
 BaseModel = declarative_base()
 metadata = BaseModel.metadata
-mysql_engine = create_engine("postgresql://postgres:postgres@localhost:5432/postgres", encoding="utf-8", echo=True,
+mysql_engine = create_engine("postgresql://postgres:12345@localhost:5432/postgres", encoding="utf-8", echo=True,
                              future=True)
 Session = sessionmaker(bind=mysql_engine)
 session = Session()

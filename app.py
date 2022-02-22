@@ -70,19 +70,19 @@ def create_user():
 
     return jsonify({'message': 'successful operation'})
 
-@app.route('/edit_profile', methods = ['PUT'])
+
+@app.route('/edit_profile', methods=['PUT'])
 @jwt_required()
 def edit_profile():
     current_user = get_jwt_identity()
     if current_user is None:
         return make_response(jsonify({"403": "Access is denied"}), 403)
 
-    find_user = session.query(User).filter(User.id==current_user).one_or_none()
+    find_user = session.query(User).filter(User.id == current_user).one_or_none()
     if find_user is None:
         return 'User not found'
 
     data = request.get_json()
-    
 
     if not session.query(User).filter(User.username == data['username']).one_or_none() is None:
         return 'This username already exists', '400'
@@ -90,12 +90,11 @@ def edit_profile():
     if not session.query(User).filter(User.email == data['email']).one_or_none() is None:
         return 'This email is taken', '400'
 
-    
-    find_user.username=data['username']
-    find_user.email=data['email']
-    find_user.password=bcrypt.generate_password_hash(data['password']).decode('utf-8')
-    find_user.city=data['city']
-    find_user.photo=data['photo']
+    find_user.username = data['username']
+    find_user.email = data['email']
+    find_user.password = bcrypt.generate_password_hash(data['password']).decode('utf-8')
+    find_user.city = data['city']
+    find_user.photo = data['photo']
 
     session.commit()
 
@@ -109,13 +108,14 @@ def get_user():
     if current_user is None:
         return make_response(jsonify({"403": "Access is denied"}), 403)
 
-    find_user = session.query(User).filter(User.id==current_user).one_or_none()
+    find_user = session.query(User).filter(User.id == current_user).one_or_none()
     if find_user is None:
         return 'User not found'
 
     user_schema = UserSchema()
     user = user_schema.dump(find_user)
     return user
+
 
 @app.route('/login', methods=['GET'])
 @auth.verify_password
@@ -145,7 +145,6 @@ def get_genres():
 
 @app.route('/<user_id>/<genre_id>', methods=['POST'])
 def add_genre_for_user(user_id, genre_id):
-
     user.genre_id = []
     user.genre_id.append(genre_id)
     session.commit()
@@ -165,10 +164,8 @@ def get_songs():
     return jsonify(tracks)
 
 
-
 @app.route('/<user_id>/<song_id>', methods=['PUT'])
 @app.route('/songs/<user_id>/<song_id>', methods=['PUT'])
-
 def add_song_for_user(user_id, song_id):
     user = session.query(User).filter(User.id == user_id).one_or_none()
     if user is None:
@@ -206,7 +203,6 @@ def get_artists():
 
 @app.route('/<user_id>/<artist_id>', methods=['POST'])
 def add_artist_for_user(user_id, artist_id):
-
     user.artist_id = []
     user.artist_id.append(artist_id)
     session.commit()
@@ -241,31 +237,51 @@ def create_news():
 
 @app.route('/news', methods=['GET'])
 @jwt_required()
-def display_news(id=all):
-    get_news = session.query(User).filter(Wall.id == id).all()
-    wall_schema = WallSchema()
+def display_news():
+    current_user = get_jwt_identity()
+    if current_user is None:
+        return make_response(jsonify({"403": "Access is denied"}), 403)
+    data = request.get_json()
+
+    get_news = session.query(User).all()
+    news = []
     if get_news is None:
         return 'There wasn`t any news yet'
-    return jsonify(get_news)
+    return jsonify(news)
 
 
 @app.route('/friends', methods=['GET'])
 @jwt_required()
-def suggested_friends(username=all):
-    find_user = session.query(User).filter(User.username == username).all()
-    user_schema = UserSchema()
-    return jsonify('You may like: ', find_user)
-
-
-@app.route('/edit_genre', methods=['PUT'])
-@jwt_required()
-def edit_genre(genre_id=None):
+def suggested_friends():
     current_user = get_jwt_identity()
     if current_user is None:
         return make_response(jsonify({"403": "Access is denied"}), 403)
 
-    user.genre_id = []
-    user.genre_id.append(genre_id)
+    find_user = session.query(User).filter(User.id == current_user).one_or_none()
+    find_friend = session.query(User).filter(User.genre_id == find_user.genre_id).all()
+
+    user = []
+    for friend in find_friend:
+        if friend.id != current_user:
+            user.append(UserSchema(exclude=['password']).dump(friend))
+    return jsonify(user)
+
+
+@app.route('/edit_genre', methods=['PUT'])
+@jwt_required()
+def edit_genre():
+    current_user = get_jwt_identity()
+    if current_user is None:
+        return make_response(jsonify({"403": "Access is denied"}), 403)
+    data = request.get_json()
+
+    find_user = session.query(User).filter(User.id == current_user).one_or_none()
+    if find_user is None:
+        return 'error'
+    if find_user.genre_id is None:
+        find_user.genre_id = data["genre_id"]
+    else:
+        find_user.genre_id.append(data["genre_id"])
 
     session.commit()
     return jsonify({'message': 'successful operation'})
@@ -273,13 +289,19 @@ def edit_genre(genre_id=None):
 
 @app.route('/edit_artist', methods=['PUT'])
 @jwt_required
-def edit_artist(artist_id=None):
+def edit_artist():
     current_user = get_jwt_identity()
     if current_user is None:
         return make_response(jsonify({"403": "Access is denied"}), 403)
+    data = request.get_json()
 
-    user.artist_id = []
-    user.genre_id.append(artist_id)
+    find_user = session.query(User).filter(User.id == current_user).one_or_none()
+    if find_user is None:
+        return 'error'
+    if find_user.artist_id is None:
+        find_user.artist_id = data["artist_id"]
+    else:
+        find_user.artist_id.append(data["artist_id"])
 
     session.commit()
     return jsonify({'message': 'successful operation'})
@@ -370,7 +392,7 @@ def get_friend(id, friend):
 
     if find_user is None:
         return 'User with such a username doesn\'t exist'
-    
+
     find_friend = session.query(Friends).filter(Friends.user_id_1 == id).filter(
         Friends.user_id_2 == find_user.id).one_or_none()
 
@@ -379,8 +401,8 @@ def get_friend(id, friend):
 
     if find_friend.status != 'accepted':
         return 'You are not friends yet'
-    
-    found_friend = session.query(User).filter(User.id==find_friend.user_id_2).one_or_none()
+
+    found_friend = session.query(User).filter(User.id == find_friend.user_id_2).one_or_none()
     user = UserSchema(exclude=['password']).dump(found_friend)
     return user
 
@@ -398,9 +420,9 @@ def get_friends(id):
 
     if find_friends is None:
         return 'You have no friends'
-    found_friend=[]
+    found_friend = []
     for friend in find_friends:
-        found_friend.append(session.query(User).filter(User.id==friend.user_id_2).one_or_none())
+        found_friend.append(session.query(User).filter(User.id == friend.user_id_2).one_or_none())
     user = []
     for friend in found_friend:
         user.append(UserSchema(exclude=['password']).dump(friend))
