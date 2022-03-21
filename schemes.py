@@ -9,6 +9,9 @@ class UserSchema(Schema):
     password = fields.Str()
     city = fields.Str()
     photo = fields.Bool()
+    genre_id = fields.List(fields.Str())
+    artist_id = fields.List(fields.Str())
+    track_id = fields.List(fields.Str())
 
     @post_load
     def all_users(self, data, **kwargs):
