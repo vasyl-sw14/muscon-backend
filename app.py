@@ -15,7 +15,7 @@ from flask_bcrypt import Bcrypt
 from models import User, Wall, Session, Friends
 from flask_httpauth import HTTPBasicAuth
 from flask_socketio import SocketIO, send, emit
-from schemes import UserSchema, WallSchema
+from schemes import *
 import jwt
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token, JWTManager, get_jwt
 from datetime import datetime
@@ -114,7 +114,35 @@ def get_user():
 
     user_schema = UserSchema()
     user = user_schema.dump(find_user)
-    return user
+
+    find_artists = []
+    if find_user.artist_id != None:
+        for i in find_user.artist_id:
+            #find_artists.append(session.query(Artist).filter(Artist.id == i).one_or_none())
+            uri = 'spotify:artist:' + i
+            find_artists.append(sp.artist(uri)['name'])
+    artists_schema = ArtistSchema()
+    artists = artists_schema.dump(find_artists)
+
+    find_genres = []
+    if find_user.genre_id != None:
+        for i in find_user.genre_id:
+            find_genres.append(session.query(Genre).filter(Genre.id == i).one_or_none())
+    genres_schema = GenreSchema()
+    genres = genres_schema.dump(find_genres)
+
+    find_tracks = []
+    if find_user.track_id != None:
+        for i in range(0, len(find_user.track_id)):
+            find_tracks.append([0 for c in range(0, 2)])
+            find_tracks[i][0] = sp.track(find_user.track_id[i])['name']
+            #find_tracks.append(sp.track(find_user.track_id[i])['name'])
+            find_tracks[i][1] = sp.track(find_user.track_id[i])['album']['artists'][0]['name']
+           # print(sp.track(find_user.track_id[i])['name'])
+    tracks_schema = TrackSchema()
+    tracks = tracks_schema.dump(find_tracks)
+    #return (user, jsonify(find_tracks))
+    return '{} {} {}'.format(user, find_tracks, find_artists)
 
 
 @app.route('/login', methods=['GET'])
@@ -288,7 +316,7 @@ def edit_genre():
 
 
 @app.route('/edit_artist', methods=['PUT'])
-@jwt_required
+@jwt_required()
 def edit_artist():
     current_user = get_jwt_identity()
     if current_user is None:

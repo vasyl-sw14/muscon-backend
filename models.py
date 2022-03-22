@@ -53,7 +53,7 @@ class Wall(BaseModel):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('user.id'),
                      nullable=False)  # 'user_id'
-    genre_id = Column(Integer, ForeignKey('genre.id'),
+    genre_id = Column(String(250), ForeignKey('genre.id'),
                       nullable=False)  # 'genre_id'
     datetime = Column(DateTime, nullable=False, default=datetime.utcnow())
     text = Column(String(500), nullable=False)
@@ -62,11 +62,11 @@ class Wall(BaseModel):
 
 class Genre(BaseModel):
     __tablename__ = "genre"
-    id = Column(Integer, primary_key=True)
+    id = Column(String(250), primary_key=True)
     name = Column(String(45), nullable=False)
 
 
 class Artist(BaseModel):
     __tablename__ = "artist"
-    id = Column(Integer, primary_key=True)
+    id = Column(String(250), primary_key=True)
     name = Column(String(45), nullable=False)
