@@ -101,14 +101,11 @@ def edit_profile():
     return jsonify({'message': 'successful operation'})
 
 
-@app.route('/user', methods=['GET'])
+@app.route('/user/<id>', methods=['GET'])
 @jwt_required()
-def get_user():
-    current_user = get_jwt_identity()
-    if current_user is None:
-        return make_response(jsonify({"403": "Access is denied"}), 403)
+def get_user(id):
 
-    find_user = session.query(User).filter(User.id == current_user).one_or_none()
+    find_user = session.query(User).filter(User.id == id).one_or_none()
     if find_user is None:
         return 'User not found'
 
@@ -117,14 +114,10 @@ def get_user():
 
     return user
 
-@app.route('/get_user_artists', methods=['GET'])
+@app.route('/get_user_artists/<id>', methods=['GET'])
 @jwt_required()
-def get_user_artists():
-    current_user = get_jwt_identity()
-    if current_user is None:
-        return make_response(jsonify({"403": "Access is denied"}), 403)
-
-    find_user = session.query(User).filter(User.id == current_user).one_or_none()
+def get_user_artists(id):
+    find_user = session.query(User).filter(User.id == id).one_or_none()
     if find_user is None:
         return 'User not found'
 
@@ -135,27 +128,18 @@ def get_user_artists():
             find_artists.append(sp.artist(uri)['name'])
     return jsonify(find_artists)
 
-@app.route('/get_user_genres', methods=['GET'])
+@app.route('/get_user_genres/<id>', methods=['GET'])
 @jwt_required()
-def get_user_genres():
-    current_user = get_jwt_identity()
-    if current_user is None:
-        return make_response(jsonify({"403": "Access is denied"}), 403)
-
-    find_user = session.query(User).filter(User.id == current_user).one_or_none()
+def get_user_genres(id):
+    find_user = session.query(User).filter(User.id == id).one_or_none()
     if find_user is None:
         return 'User not found'
-
     return jsonify(find_user.genre_id)
 
-@app.route('/get_user_tracks', methods=['GET'])
+@app.route('/get_user_tracks/<id>', methods=['GET'])
 @jwt_required()
-def get_user_tracks():
-    current_user = get_jwt_identity()
-    if current_user is None:
-        return make_response(jsonify({"403": "Access is denied"}), 403)
-
-    find_user = session.query(User).filter(User.id == current_user).one_or_none()
+def get_user_tracks(id):
+    find_user = session.query(User).filter(User.id == id).one_or_none()
     if find_user is None:
         return 'User not found'
 
@@ -165,8 +149,7 @@ def get_user_tracks():
             find_tracks.append([0 for c in range(0, 2)])
             find_tracks[i][0] = sp.track(find_user.track_id[i])['name']
             find_tracks[i][1] = sp.track(find_user.track_id[i])['album']['artists'][0]['name']
-    tracks_schema = TrackSchema()
-    tracks = tracks_schema.dump(find_tracks)
+            
     return jsonify(find_tracks)
 
 @app.route('/login', methods=['GET'])

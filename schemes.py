@@ -26,28 +26,3 @@ class WallSchema(Schema):
     @post_load
     def all_news(self, data, **kwargs):
         return Wall(**data)
-
-class ArtistSchema(Schema):
-    id = fields.Int()
-    name = fields.Str()
-
-    @post_load
-    def all_users(self, data, **kwargs):
-        return Artist(**data)
-
-class GenreSchema(Schema):
-    id = fields.Int()
-    name = fields.Str()
-
-    @post_load
-    def all_users(self, data, **kwargs):
-        return Genre(**data)
-
-class TrackSchema(Schema):
-    id = fields.Int()
-    name = fields.Str()
-    artist = fields.Str()
-
-    @post_load
-    def all_users(self, data, **kwargs):
-        return Genre(**data)
