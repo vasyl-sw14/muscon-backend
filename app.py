@@ -114,6 +114,14 @@ def get_user(id):
 
     return user
 
+@app.route('/get_user_id', methods=['GET'])
+@jwt_required()
+def get_id():
+    current_user = get_jwt_identity()
+    if current_user is None:
+        return make_response(jsonify({"403": "Access is denied"}), 403)
+    return jsonify(current_user)
+
 @app.route('/get_user_artists/<id>', methods=['GET'])
 @jwt_required()
 def get_user_artists(id):
@@ -446,7 +454,7 @@ def get_friend(id, friend):
 @jwt_required()
 def get_friends(id):
     current_user_id = get_jwt_identity()
-    if int(id) != current_user_id:
+    if current_user_id is None:
         return make_response(jsonify({"403": "Access is denied"}), 403)
 
     find_friends = session.query(Friends).filter(
