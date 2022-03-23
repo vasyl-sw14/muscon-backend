@@ -160,6 +160,19 @@ def get_user_tracks(id):
             
     return jsonify(find_tracks)
 
+@app.route('/get_user_friends/<friend_id>', methods=['GET'])
+@jwt_required()
+def get_user_friends(friend_id):
+    current_user = get_jwt_identity()
+    if current_user is None:
+        return make_response(jsonify({"403": "Access is denied"}), 403)
+
+    find_friend = session.query(Friends).filter(Friends.user_id_1 == current_user).filter(Friends.user_id_2 == friend_id).one_or_none()
+    if find_friend is None:
+        return 'You\'re not friends'
+    return jsonify(find_friend.status)
+
+
 @app.route('/login', methods=['GET'])
 @auth.verify_password
 def login():
@@ -185,7 +198,7 @@ def get_genres():
     result = sp.recommendation_genre_seeds()
     return jsonify(result['genres'])
 
-
+'''
 @app.route('/<user_id>/<genre_id>', methods=['POST'])
 def add_genre_for_user(user_id, genre_id):
     user.genre_id = []
@@ -193,7 +206,7 @@ def add_genre_for_user(user_id, genre_id):
     session.commit()
 
     return jsonify({'message': 'successful operation'})
-
+'''
 
 @app.route('/songs', methods=['POST'])
 def get_songs():
@@ -207,7 +220,6 @@ def get_songs():
     return jsonify(tracks)
 
 
-@app.route('/<user_id>/<song_id>', methods=['PUT'])
 @app.route('/songs/<user_id>/<song_id>', methods=['PUT'])
 def add_song_for_user(user_id, song_id):
     user = session.query(User).filter(User.id == user_id).one_or_none()
@@ -243,7 +255,7 @@ def get_artists():
     artists.sort(key=lambda x: x['popularity'], reverse=True)
     return jsonify(artists)
 
-
+'''
 @app.route('/<user_id>/<artist_id>', methods=['POST'])
 def add_artist_for_user(user_id, artist_id):
     user.artist_id = []
@@ -251,7 +263,7 @@ def add_artist_for_user(user_id, artist_id):
     session.commit()
 
     return jsonify({'message': 'successful operation'})
-
+'''
 
 @app.route('/wall', methods=['POST'])
 @jwt_required()
@@ -365,7 +377,7 @@ def send_friend_request(id, friend):
     new_friend_1 = Friends(
         user_id_1=id,
         user_id_2=find_friend.id,
-        status='new'
+        status='sent'
     )
 
     new_friend_2 = Friends(
@@ -472,6 +484,25 @@ def get_friends(id):
     return jsonify(user)
 
 
+@app.route('/friend_requests', methods=['GET'])
+@jwt_required()
+def get_friend_requests():
+    current_user_id = get_jwt_identity()
+    if current_user_id is None:
+        return make_response(jsonify({"403": "Access is denied"}), 403)
+
+    find_friends = session.query(Friends).filter(Friends.user_id_1 == current_user_id).filter(Friends.status == 'new').all()
+
+    if find_friends is None:
+        return 'You have no request'
+    found_friend = []
+    for friend in find_friends:
+        found_friend.append(session.query(User).filter(User.id == friend.user_id_2).one_or_none())
+    user = []
+    for friend in found_friend:
+        user.append(UserSchema(exclude=['password']).dump(friend))
+    return jsonify(user)
+    
 @app.route('/get_top_artists', methods=['POST'])
 def get_top_artists():
     genres = request.form.get('genres')
