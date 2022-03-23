@@ -115,35 +115,59 @@ def get_user():
     user_schema = UserSchema()
     user = user_schema.dump(find_user)
 
+    return user
+
+@app.route('/get_user_artists', methods=['GET'])
+@jwt_required()
+def get_user_artists():
+    current_user = get_jwt_identity()
+    if current_user is None:
+        return make_response(jsonify({"403": "Access is denied"}), 403)
+
+    find_user = session.query(User).filter(User.id == current_user).one_or_none()
+    if find_user is None:
+        return 'User not found'
+
     find_artists = []
     if find_user.artist_id != None:
         for i in find_user.artist_id:
-            #find_artists.append(session.query(Artist).filter(Artist.id == i).one_or_none())
             uri = 'spotify:artist:' + i
             find_artists.append(sp.artist(uri)['name'])
-    artists_schema = ArtistSchema()
-    artists = artists_schema.dump(find_artists)
+    return jsonify(find_artists)
 
-    find_genres = []
-    if find_user.genre_id != None:
-        for i in find_user.genre_id:
-            find_genres.append(session.query(Genre).filter(Genre.id == i).one_or_none())
-    genres_schema = GenreSchema()
-    genres = genres_schema.dump(find_genres)
+@app.route('/get_user_genres', methods=['GET'])
+@jwt_required()
+def get_user_genres():
+    current_user = get_jwt_identity()
+    if current_user is None:
+        return make_response(jsonify({"403": "Access is denied"}), 403)
+
+    find_user = session.query(User).filter(User.id == current_user).one_or_none()
+    if find_user is None:
+        return 'User not found'
+
+    return jsonify(find_user.genre_id)
+
+@app.route('/get_user_tracks', methods=['GET'])
+@jwt_required()
+def get_user_tracks():
+    current_user = get_jwt_identity()
+    if current_user is None:
+        return make_response(jsonify({"403": "Access is denied"}), 403)
+
+    find_user = session.query(User).filter(User.id == current_user).one_or_none()
+    if find_user is None:
+        return 'User not found'
 
     find_tracks = []
     if find_user.track_id != None:
         for i in range(0, len(find_user.track_id)):
             find_tracks.append([0 for c in range(0, 2)])
             find_tracks[i][0] = sp.track(find_user.track_id[i])['name']
-            #find_tracks.append(sp.track(find_user.track_id[i])['name'])
             find_tracks[i][1] = sp.track(find_user.track_id[i])['album']['artists'][0]['name']
-           # print(sp.track(find_user.track_id[i])['name'])
     tracks_schema = TrackSchema()
     tracks = tracks_schema.dump(find_tracks)
-    #return (user, jsonify(find_tracks))
-    return '{} {} {}'.format(user, find_tracks, find_artists)
-
+    return jsonify(find_tracks)
 
 @app.route('/login', methods=['GET'])
 @auth.verify_password
