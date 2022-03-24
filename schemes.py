@@ -18,8 +18,9 @@ class UserSchema(Schema):
 class WallSchema(Schema):
     id = fields.Int()
     user_id = fields.Int()
-    genre_id = fields.Int()
+    genre_id = fields.Str()
     datetime = fields.Date()
+    title = fields.Str()
     text = fields.Str()
     photo_wall = fields.Bool()
 

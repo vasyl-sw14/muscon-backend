@@ -18,7 +18,7 @@ datetime.utcnow()
 
 BaseModel = declarative_base()
 metadata = BaseModel.metadata
-mysql_engine = create_engine("postgresql://postgres:postgres@localhost:5432/postgres", encoding="utf-8", echo=True,
+mysql_engine = create_engine("postgresql://postgres:12345@localhost:5432/postgres", encoding="utf-8", echo=True,
                              future=True)
 Session = sessionmaker(bind=mysql_engine)
 session = Session()
@@ -52,10 +52,10 @@ class Wall(BaseModel):
     __tablename__ = "wall"
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('user.id'),
-                     nullable=False)  # 'user_id'
-    genre_id = Column(String(250), ForeignKey('genre.id'),
-                      nullable=False)  # 'genre_id'
+                     nullable=False)
+    genre_id = Column(String(250), nullable=False)
     datetime = Column(DateTime, nullable=False, default=datetime.utcnow())
+    title = Column(String(100), nullable=True)
     text = Column(String(500), nullable=False)
     photo_wall = Column(String(250), nullable=True)
 

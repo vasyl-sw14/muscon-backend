@@ -277,12 +277,10 @@ def create_news():
         user_id=current_user,
         genre_id=data['genre_id'],
         datetime=datetime.utcnow(),
+        title=data['title'],
         text=data['text'],
         photo_wall=data['photo']
     )
-
-    if not session.query(User).filter(Wall.genre_id != data['genre_id']).one_or_none() is None:
-        return 'Such genre doesn\'t exist', '400'
 
     session.add(new)
     session.commit()
@@ -296,13 +294,24 @@ def display_news():
     current_user = get_jwt_identity()
     if current_user is None:
         return make_response(jsonify({"403": "Access is denied"}), 403)
+
+    found_news = session.query(Wall).all()
+    news = []
+
+    for new in found_news:
+        news.append(WallSchema().dump(new))
+    return jsonify(news)
+
+
+@app.route('/get_user_info', methods=['GET'])
+@jwt_required()
+def get_user_info():
+    current_user = get_jwt_identity()
+    if current_user is None:
+        return make_response(jsonify({"403": "Access is denied"}), 403)
     data = request.get_json()
 
-    get_news = session.query(User).all()
-    news = []
-    if get_news is None:
-        return 'There wasn`t any news yet'
-    return jsonify(news)
+    return jsonify(data)
 
 
 @app.route('/friends', methods=['GET'])
