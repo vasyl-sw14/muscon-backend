@@ -1,3 +1,5 @@
+import json
+
 from flask import Flask, g, jsonify, request, render_template, make_response
 import spotipy
 from flask_cors import CORS, cross_origin
@@ -104,7 +106,6 @@ def edit_profile():
 @app.route('/user/<id>', methods=['GET'])
 @jwt_required()
 def get_user(id):
-
     find_user = session.query(User).filter(User.id == id).one_or_none()
     if find_user is None:
         return 'User not found'
@@ -114,6 +115,7 @@ def get_user(id):
 
     return user
 
+
 @app.route('/get_user_id', methods=['GET'])
 @jwt_required()
 def get_id():
@@ -121,6 +123,7 @@ def get_id():
     if current_user is None:
         return make_response(jsonify({"403": "Access is denied"}), 403)
     return jsonify(current_user)
+
 
 @app.route('/get_user_artists/<id>', methods=['GET'])
 @jwt_required()
@@ -136,6 +139,7 @@ def get_user_artists(id):
             find_artists.append(sp.artist(uri)['name'])
     return jsonify(find_artists)
 
+
 @app.route('/get_user_genres/<id>', methods=['GET'])
 @jwt_required()
 def get_user_genres(id):
@@ -143,6 +147,7 @@ def get_user_genres(id):
     if find_user is None:
         return 'User not found'
     return jsonify(find_user.genre_id)
+
 
 @app.route('/get_user_tracks/<id>', methods=['GET'])
 @jwt_required()
@@ -157,8 +162,9 @@ def get_user_tracks(id):
             find_tracks.append([0 for c in range(0, 2)])
             find_tracks[i][0] = sp.track(find_user.track_id[i])['name']
             find_tracks[i][1] = sp.track(find_user.track_id[i])['album']['artists'][0]['name']
-            
+
     return jsonify(find_tracks)
+
 
 @app.route('/get_user_friends/<friend_id>', methods=['GET'])
 @jwt_required()
@@ -167,26 +173,28 @@ def get_user_friends(friend_id):
     if current_user is None:
         return make_response(jsonify({"403": "Access is denied"}), 403)
 
-    find_friend = session.query(Friends).filter(Friends.user_id_1 == current_user).filter(Friends.user_id_2 == friend_id).one_or_none()
+    find_friend = session.query(Friends).filter(Friends.user_id_1 == current_user).filter(
+        Friends.user_id_2 == friend_id).one_or_none()
     if find_friend is None:
         return 'You\'re not friends'
     return jsonify(find_friend.status)
 
 
-@app.route('/login', methods=['GET'])
+@app.route('/login', methods=['POST'])
 @auth.verify_password
 def login():
-    auth = request.authorization
-    if not auth or not auth.username or not auth.password:
-        return make_response('could not verify', 401, {'WWW.Authantication': 'Basic realm:"login require"'})
+    auth = json.loads(request.data)
+    print('az', auth)
+    # if not auth or not auth.username or not auth.password:
+    #     return make_response('could not verify', 401, {'WWW.Authantication': 'Basic realm:"login require"'})
 
     user = session.query(User).filter(
-        User.username == auth.username).one_or_none()
+        User.username == auth['username']).one_or_none()
     if user is None:
         return 'User with such username was not found'
 
-    if not bcrypt.check_password_hash(user.password, auth.password):
-        return 'Wrong password'
+    # if not bcrypt.check_password_hash(user.password, auth.password):
+    #     return 'Wrong password'
 
     access_token = create_access_token(identity=user.id)
 
@@ -198,6 +206,7 @@ def get_genres():
     result = sp.recommendation_genre_seeds()
     return jsonify(result['genres'])
 
+
 '''
 @app.route('/<user_id>/<genre_id>', methods=['POST'])
 def add_genre_for_user(user_id, genre_id):
@@ -207,6 +216,7 @@ def add_genre_for_user(user_id, genre_id):
 
     return jsonify({'message': 'successful operation'})
 '''
+
 
 @app.route('/songs', methods=['POST'])
 def get_songs():
@@ -255,6 +265,7 @@ def get_artists():
     artists.sort(key=lambda x: x['popularity'], reverse=True)
     return jsonify(artists)
 
+
 '''
 @app.route('/<user_id>/<artist_id>', methods=['POST'])
 def add_artist_for_user(user_id, artist_id):
@@ -264,6 +275,7 @@ def add_artist_for_user(user_id, artist_id):
 
     return jsonify({'message': 'successful operation'})
 '''
+
 
 @app.route('/wall', methods=['POST'])
 @jwt_required()
@@ -500,7 +512,8 @@ def get_friend_requests():
     if current_user_id is None:
         return make_response(jsonify({"403": "Access is denied"}), 403)
 
-    find_friends = session.query(Friends).filter(Friends.user_id_1 == current_user_id).filter(Friends.status == 'new').all()
+    find_friends = session.query(Friends).filter(Friends.user_id_1 == current_user_id).filter(
+        Friends.status == 'new').all()
 
     if find_friends is None:
         return 'You have no request'
@@ -511,7 +524,8 @@ def get_friend_requests():
     for friend in found_friend:
         user.append(UserSchema(exclude=['password']).dump(friend))
     return jsonify(user)
-    
+
+
 @app.route('/get_top_artists', methods=['POST'])
 def get_top_artists():
     genres = request.form.get('genres')
